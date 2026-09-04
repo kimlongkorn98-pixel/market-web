@@ -47,6 +47,7 @@ export const categories: Category[] = [
   { id: "books", name: "Books", icon: "📚", count: 765, color: "bg-yellow-100 text-yellow-700" },
   { id: "toys", name: "Toys & Games", icon: "🎮", count: 543, color: "bg-purple-100 text-purple-700" },
   { id: "beauty", name: "Beauty", icon: "💄", count: 298, color: "bg-rose-100 text-rose-700" },
+  { id: "food", name: "Food & Drink", icon: "🍔", count: 180, color: "bg-amber-100 text-amber-700" },
 ];
 
 export const sellers: Seller[] = [
@@ -93,6 +94,42 @@ export const sellers: Seller[] = [
 ];
 
 export const products: Product[] = [
+  {
+    id: "food-1",
+    title: "Artisanal Dark Chocolate Truffles Box",
+    price: 24.99,
+    originalPrice: 30.00,
+    description: "Handcrafted dark chocolate truffles made with 72% single-origin cacao. Box contains 12 pieces. Perfect for gifting or a personal treat.",
+    category: "food",
+    condition: "new",
+    images: [
+      "https://images.unsplash.com/photo-1548883354-94bcfe321cfa?w=600&auto=format&fit=crop",
+    ],
+    seller: sellers[1],
+    location: "San Francisco, CA",
+    createdAt: "2024-03-21T10:00:00Z",
+    views: 125,
+    isFeatured: true,
+    tags: ["chocolate", "gift", "sweet", "artisanal"],
+    rating: 4.9,
+    reviewCount: 32,
+  },
+  {
+    id: "food-2",
+    title: "Organic Premium Matcha Green Tea Powder",
+    price: 18.50,
+    description: "Ceremonial grade matcha sourced directly from Uji, Japan. Rich in antioxidants and offers a smooth, umami flavor. 100g tin.",
+    category: "food",
+    condition: "new",
+    images: [
+      "https://images.unsplash.com/photo-1582793988951-9aed550c94d4?w=600&auto=format&fit=crop",
+    ],
+    seller: sellers[3],
+    location: "Austin, TX",
+    createdAt: "2024-03-20T14:30:00Z",
+    views: 89,
+    tags: ["tea", "matcha", "organic", "beverage"],
+  },
   {
     id: "1",
     title: "Apple MacBook Pro 14\" M3 - Excellent Condition",

@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { useSearchParams } from "next/navigation";
+import { useState, useMemo, useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { products, categories } from "@/lib/data";
 import ProductCard from "@/components/ProductCard";
+import { useTranslation } from "@/lib/i18n";
 import {
   SlidersHorizontal,
   X,
@@ -20,16 +21,43 @@ const SORT_OPTIONS = [
 
 export default function ProductsClient() {
   const searchParams = useSearchParams();
-  const initialSearch = searchParams.get("search") || "";
-  const initialCategory = searchParams.get("category") || "";
+  const router = useRouter();
+  const { t } = useTranslation();
 
-  const [search, setSearch] = useState(initialSearch);
-  const [selectedCategory, setSelectedCategory] = useState(initialCategory);
+  const urlSearch = searchParams.get("search") || "";
+  const urlCategory = searchParams.get("category") || "";
+
+  const [search, setSearch] = useState(urlSearch);
+  const [selectedCategory, setSelectedCategory] = useState(urlCategory);
+  
+  // Sync state when URL parameters change (e.g., clicking "Browse All" in navigation)
+  useEffect(() => {
+    setSelectedCategory(urlCategory);
+  }, [urlCategory]);
+
+  useEffect(() => {
+    setSearch(urlSearch);
+  }, [urlSearch]);
+
   const [selectedConditions, setSelectedConditions] = useState<string[]>([]);
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
   const [sortBy, setSortBy] = useState("newest");
   const [showFilters, setShowFilters] = useState(false);
+
+  // Helper to update URL when category changes
+  const handleCategoryChange = (newCategory: string) => {
+    setSelectedCategory(newCategory);
+    
+    // Update URL
+    const params = new URLSearchParams(searchParams.toString());
+    if (newCategory) {
+      params.set("category", newCategory);
+    } else {
+      params.delete("category");
+    }
+    router.replace(`/products?${params.toString()}`, { scroll: false });
+  };
 
   const filtered = useMemo(() => {
     let result = [...products];
@@ -63,8 +91,12 @@ export default function ProductsClient() {
     );
 
   const clearFilters = () => {
-    setSearch(""); setSelectedCategory(""); setSelectedConditions([]);
-    setMinPrice(""); setMaxPrice(""); setSortBy("newest");
+    setSearch(""); 
+    handleCategoryChange(""); 
+    setSelectedConditions([]);
+    setMinPrice(""); 
+    setMaxPrice(""); 
+    setSortBy("newest");
   };
 
   const activeFilterCount = [selectedCategory, ...selectedConditions, minPrice, maxPrice].filter(Boolean).length;
@@ -75,31 +107,36 @@ export default function ProductsClient() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
             {selectedCategory
-              ? categories.find((c) => c.id === selectedCategory)?.name || "Products"
-              : search ? `Results for "${search}"` : "All Products"}
+              ? t(`cat_${selectedCategory}`)
+              : search ? `${t("results_for")} "${search}"` : t("all_products")}
           </h1>
-          <p className="text-gray-500 text-sm mt-1">{filtered.length} listings found</p>
+          <p className="text-gray-500 text-sm mt-1">{filtered.length} {t("listings_found")}</p>
         </div>
-        <div className="flex items-center gap-2">
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white"
-          >
-            {SORT_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="appearance-none border border-gray-200 rounded-xl pl-4 pr-10 py-2 h-[42px] text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white cursor-pointer transition-colors hover:border-indigo-300"
+            >
+              {SORT_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+            </div>
+          </div>
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center gap-2 border rounded-xl px-3 py-2 text-sm font-medium transition-colors ${
+            className={`flex items-center gap-2 border rounded-xl px-4 py-2 h-[42px] text-sm font-medium transition-colors ${
               showFilters || activeFilterCount > 0
                 ? "bg-indigo-600 text-white border-indigo-600"
-                : "border-gray-200 text-gray-700 hover:border-indigo-300"
+                : "border-gray-200 text-gray-700 hover:border-indigo-300 bg-white"
             }`}
           >
             <SlidersHorizontal className="w-4 h-4" />
-            Filters
+            {t("filters")}
             {activeFilterCount > 0 && (
               <span className="bg-white text-indigo-600 rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">
                 {activeFilterCount}
@@ -109,56 +146,39 @@ export default function ProductsClient() {
         </div>
       </div>
 
-      {/* Search bar */}
-      <div className="relative mb-6">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-        <input
-          type="text"
-          placeholder="Search products..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white"
-        />
-        {search && (
-          <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-            <X className="w-4 h-4" />
-          </button>
-        )}
-      </div>
-
       <div className="flex gap-6">
         {/* Sidebar Filters */}
         {showFilters && (
           <aside className="w-64 shrink-0">
             <div className="bg-white rounded-2xl border border-gray-100 p-4">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-gray-900">Filters</h3>
-                <button onClick={clearFilters} className="text-xs text-indigo-600 hover:text-indigo-700">Clear all</button>
+                <h3 className="font-semibold text-gray-900">{t("filters")}</h3>
+                <button onClick={clearFilters} className="text-xs text-indigo-600 hover:text-indigo-700">{t("clear_all")}</button>
               </div>
               {/* Category */}
               <div className="mb-5">
-                <h4 className="text-sm font-medium text-gray-700 mb-2">Category</h4>
+                <h4 className="text-sm font-medium text-gray-700 mb-2">{t("category")}</h4>
                 <div className="space-y-1">
                   <button
-                    onClick={() => setSelectedCategory("")}
+                    onClick={() => handleCategoryChange("")}
                     className={`w-full text-left text-sm px-2 py-1.5 rounded-lg transition-colors ${!selectedCategory ? "bg-indigo-50 text-indigo-700 font-medium" : "text-gray-600 hover:bg-gray-50"}`}
                   >
-                    All Categories
+                    {t("all_categories")}
                   </button>
                   {categories.map((cat) => (
                     <button
                       key={cat.id}
-                      onClick={() => setSelectedCategory(cat.id)}
+                      onClick={() => handleCategoryChange(cat.id)}
                       className={`w-full text-left text-sm px-2 py-1.5 rounded-lg transition-colors flex items-center gap-2 ${selectedCategory === cat.id ? "bg-indigo-50 text-indigo-700 font-medium" : "text-gray-600 hover:bg-gray-50"}`}
                     >
-                      <span>{cat.icon}</span> {cat.name}
+                      <span>{cat.icon}</span> {t(`cat_${cat.id}`)}
                     </button>
                   ))}
                 </div>
               </div>
               {/* Condition */}
               <div className="mb-5">
-                <h4 className="text-sm font-medium text-gray-700 mb-2">Condition</h4>
+                <h4 className="text-sm font-medium text-gray-700 mb-2">{t("condition")}</h4>
                 <div className="space-y-1">
                   {CONDITIONS.map((cond) => (
                     <label key={cond} className="flex items-center gap-2 cursor-pointer text-sm text-gray-600">
@@ -170,10 +190,10 @@ export default function ProductsClient() {
               </div>
               {/* Price */}
               <div>
-                <h4 className="text-sm font-medium text-gray-700 mb-2">Price Range</h4>
+                <h4 className="text-sm font-medium text-gray-700 mb-2">{t("price_range")}</h4>
                 <div className="flex gap-2">
-                  <input type="number" placeholder="Min" value={minPrice} onChange={(e) => setMinPrice(e.target.value)} className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
-                  <input type="number" placeholder="Max" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+                  <input type="number" placeholder={t("min")} value={minPrice} onChange={(e) => setMinPrice(e.target.value)} className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+                  <input type="number" placeholder={t("max")} value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
                 </div>
               </div>
             </div>
@@ -185,18 +205,18 @@ export default function ProductsClient() {
           {/* Category pills */}
           <div className="flex gap-2 flex-wrap mb-4">
             <button
-              onClick={() => setSelectedCategory("")}
+              onClick={() => handleCategoryChange("")}
               className={`text-sm px-3 py-1.5 rounded-full border transition-colors ${!selectedCategory ? "bg-indigo-600 text-white border-indigo-600" : "border-gray-200 text-gray-600 hover:border-indigo-300"}`}
             >
-              All
+              {t("all")}
             </button>
             {categories.map((cat) => (
               <button
                 key={cat.id}
-                onClick={() => setSelectedCategory(cat.id)}
+                onClick={() => handleCategoryChange(cat.id)}
                 className={`text-sm px-3 py-1.5 rounded-full border transition-colors flex items-center gap-1 ${selectedCategory === cat.id ? "bg-indigo-600 text-white border-indigo-600" : "border-gray-200 text-gray-600 hover:border-indigo-300"}`}
               >
-                {cat.icon} {cat.name}
+                {cat.icon} {t(`cat_${cat.id}`)}
               </button>
             ))}
           </div>
@@ -204,10 +224,10 @@ export default function ProductsClient() {
           {filtered.length === 0 ? (
             <div className="text-center py-16">
               <div className="text-5xl mb-4">🔍</div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No products found</h3>
-              <p className="text-gray-500 mb-4">Try adjusting your filters or search terms.</p>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">{t("no_products")}</h3>
+              <p className="text-gray-500 mb-4">{t("try_adjusting")}</p>
               <button onClick={clearFilters} className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-indigo-700 transition-colors">
-                Clear Filters
+                {t("clear_filters")}
               </button>
             </div>
           ) : (

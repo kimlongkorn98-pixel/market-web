@@ -1,6 +1,7 @@
+"use client";
+
 import Link from "next/link";
 import {
-  Search,
   TrendingUp,
   ShieldCheck,
   Truck,
@@ -10,8 +11,10 @@ import {
 } from "lucide-react";
 import { categories, getFeaturedProducts, products } from "@/lib/data";
 import ProductCard from "@/components/ProductCard";
+import { useTranslation } from "@/lib/i18n";
 
 export default function HomePage() {
+  const { t } = useTranslation();
   const featuredProducts = getFeaturedProducts();
   const recentProducts = [...products]
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
@@ -23,50 +26,26 @@ export default function HomePage() {
       <section className="bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-700 text-white py-16 px-4">
         <div className="max-w-4xl mx-auto text-center">
           <h1 className="text-4xl md:text-5xl font-bold mb-4 leading-tight">
-            Buy & Sell Anything,{" "}
-            <span className="text-indigo-200">Anywhere</span>
+            {t("hero_title1")}{" "}
+            <span className="text-indigo-200">{t("hero_title2")}</span>
           </h1>
           <p className="text-indigo-100 text-lg mb-8 max-w-2xl mx-auto">
-            Join millions of users buying and selling new and used items. Find
-            amazing deals or list your items in minutes.
+            {t("hero_subtitle")}
           </p>
 
-          {/* Hero Search */}
-          <form
-            action="/products"
-            method="GET"
-            className="flex gap-2 max-w-2xl mx-auto"
-          >
-            <div className="flex-1 relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                name="search"
-                type="text"
-                placeholder="What are you looking for?"
-                className="w-full pl-12 pr-4 py-3 rounded-2xl text-gray-900 text-base focus:outline-none focus:ring-2 focus:ring-white/50 shadow-lg"
-              />
-            </div>
-            <button
-              type="submit"
-              className="bg-amber-400 hover:bg-amber-500 text-amber-900 font-bold px-6 py-3 rounded-2xl transition-colors shadow-lg whitespace-nowrap"
+          <div className="mt-8 flex justify-center gap-4">
+            <Link
+              href="/products"
+              className="bg-amber-400 hover:bg-amber-500 text-amber-900 font-bold px-8 py-3.5 rounded-2xl transition-colors shadow-lg"
             >
-              Search
-            </button>
-          </form>
-
-          {/* Quick links */}
-          <div className="flex flex-wrap justify-center gap-2 mt-5">
-            {["MacBook", "iPhone", "Jordan 1", "Sofa", "Drone", "PS5"].map(
-              (term) => (
-                <Link
-                  key={term}
-                  href={`/products?search=${encodeURIComponent(term)}`}
-                  className="text-sm bg-white/20 hover:bg-white/30 text-white px-3 py-1 rounded-full transition-colors"
-                >
-                  {term}
-                </Link>
-              )
-            )}
+              {t("start_browsing")}
+            </Link>
+            <Link
+              href="/sell"
+              className="bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white font-bold px-8 py-3.5 rounded-2xl transition-colors shadow-lg border border-white/20"
+            >
+              {t("list_item")}
+            </Link>
           </div>
         </div>
       </section>
@@ -75,10 +54,10 @@ export default function HomePage() {
       <section className="bg-white border-b border-gray-100 py-4">
         <div className="max-w-7xl mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
           {[
-            { value: "2M+", label: "Active Listings" },
-            { value: "500K+", label: "Happy Buyers" },
-            { value: "150K+", label: "Sellers" },
-            { value: "4.8★", label: "Average Rating" },
+            { value: "2M+", label: t("active_listings") },
+            { value: "500K+", label: t("happy_buyers") },
+            { value: "150K+", label: t("sellers_stat") },
+            { value: "4.8★", label: t("avg_rating") },
           ].map((stat) => (
             <div key={stat.label}>
               <div className="text-2xl font-bold text-indigo-600">
@@ -94,16 +73,16 @@ export default function HomePage() {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-gray-900">
-            Shop by Category
+            {t("shop_by_category")}
           </h2>
           <Link
             href="/products"
             className="text-indigo-600 hover:text-indigo-700 text-sm font-medium flex items-center gap-1"
           >
-            View all <ArrowRight className="w-4 h-4" />
+            {t("view_all")} <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-9 gap-3">
           {categories.map((cat) => (
             <Link
               key={cat.id}
@@ -114,7 +93,7 @@ export default function HomePage() {
                 {cat.icon}
               </span>
               <span className="text-xs font-medium text-gray-700 text-center">
-                {cat.name}
+                {t(`cat_${cat.id}`)}
               </span>
               <span className="text-xs text-gray-400">{cat.count.toLocaleString()}</span>
             </Link>
@@ -129,14 +108,14 @@ export default function HomePage() {
             <div className="flex items-center gap-2">
               <TrendingUp className="w-6 h-6 text-amber-500" />
               <h2 className="text-2xl font-bold text-gray-900">
-                Featured Deals
+                {t("featured_deals")}
               </h2>
             </div>
             <Link
               href="/products?featured=true"
               className="text-indigo-600 hover:text-indigo-700 text-sm font-medium flex items-center gap-1"
             >
-              See all <ArrowRight className="w-4 h-4" />
+              {t("see_all")} <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -151,13 +130,13 @@ export default function HomePage() {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-gray-900">
-            Recent Listings
+            {t("recent_listings")}
           </h2>
           <Link
             href="/products"
             className="text-indigo-600 hover:text-indigo-700 text-sm font-medium flex items-center gap-1"
           >
-            Browse all <ArrowRight className="w-4 h-4" />
+            {t("browse_all")} <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

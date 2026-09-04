@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -12,7 +13,6 @@ import {
   Store,
   Tag,
   ScanLine,
-  ChevronDown,
   Home,
   Package,
   ShoppingBag,
@@ -26,22 +26,13 @@ import {
   Shield,
   ChevronRight,
   User,
+  Moon,
+  Sun,
+  Globe,
 } from "lucide-react";
-import { useCartStore } from "@/lib/store";
-
-const LANGUAGES = [
-  { code: "km", label: "ខ្មែរ", flag: "🇰🇭", name: "Khmer" },
-  { code: "en", label: "English", flag: "🇺🇸", name: "English" },
-  { code: "vi", label: "Tiếng Việt", flag: "🇻🇳", name: "Vietnam" },
-];
-
-const NAV_LINKS = [
-  { href: "/products", label: "Browse" },
-  { href: "/products?category=electronics", label: "Electronics" },
-  { href: "/products?category=fashion", label: "Fashion" },
-  { href: "/products?category=home", label: "Home" },
-  { href: "/products?category=sports", label: "Sports" },
-];
+import { useCartStore, usePreferencesStore } from "@/lib/store";
+import { categories } from "@/lib/data";
+import { useTranslation } from "@/lib/i18n";
 
 const MENU_SECTIONS = [
   {
@@ -73,7 +64,7 @@ const MENU_SECTIONS = [
   {
     title: "Support & Settings",
     items: [
-      { href: "#", icon: Settings, label: "Settings", color: "text-gray-500" },
+      { href: "/settings", icon: Settings, label: "Settings", color: "text-gray-500" },
       { href: "#", icon: Shield, label: "Privacy & Safety", color: "text-indigo-400" },
       { href: "#", icon: HelpCircle, label: "Help & Support", color: "text-blue-400" },
       { href: "#", icon: LogOut, label: "Log Out", color: "text-red-400" },
@@ -83,32 +74,47 @@ const MENU_SECTIONS = [
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [langOpen, setLangOpen] = useState(false);
-  const [currentLang, setCurrentLang] = useState(LANGUAGES[1]);
-  const langRef = useRef<HTMLDivElement>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLElement>(null);
   const router = useRouter();
   const totalItems = useCartStore((state) => state.totalItems());
+  
+  const theme = usePreferencesStore((state) => state.theme);
+  const setTheme = usePreferencesStore((state) => state.setTheme);
+  const language = usePreferencesStore((state) => state.language);
+  const setLanguage = usePreferencesStore((state) => state.setLanguage);
 
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (langRef.current && !langRef.current.contains(e.target as Node)) {
-        setLangOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  const { t } = useTranslation();
+
+  const toggleTheme = () => {
+    setTheme(theme === "light" ? "dark" : "light");
+  };
+
+  const toggleLanguage = () => {
+    if (language === "en") setLanguage("km");
+    else if (language === "km") setLanguage("vi");
+    else setLanguage("en");
+  };
 
   // Close sidebar when clicking backdrop
   useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        setIsMenuOpen(false);
+      }
+    }
+
     if (isMenuOpen) {
       document.body.style.overflow = "hidden";
+      document.addEventListener("keydown", handleKeyDown);
     } else {
       document.body.style.overflow = "";
     }
-    return () => { document.body.style.overflow = ""; };
+    return () => {
+      document.body.style.overflow = "";
+      document.removeEventListener("keydown", handleKeyDown);
+    };
   }, [isMenuOpen]);
 
   const handleSearch = (e: React.FormEvent) => {
@@ -128,9 +134,12 @@ export default function Navbar() {
 
             {/* Hamburger — top-left (all screens) */}
             <button
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              type="button"
+              onClick={() => setIsMenuOpen((open) => !open)}
               className="flex items-center justify-center w-9 h-9 rounded-lg text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 transition-colors shrink-0"
               aria-label="Toggle menu"
+              aria-controls="site-menu"
+              aria-expanded={isMenuOpen}
             >
               <Menu className="w-5 h-5" />
             </button>
@@ -151,7 +160,7 @@ export default function Navbar() {
                 <Search className="w-4 h-4 text-indigo-400 ml-4 shrink-0" />
                 <input
                   type="text"
-                  placeholder="Search products, brands, and more..."
+                  placeholder={t("search_placeholder")}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="flex-1 px-3 py-2.5 text-sm bg-transparent outline-none text-gray-800 placeholder-gray-400 min-w-0"
@@ -173,7 +182,7 @@ export default function Navbar() {
                 className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-4 py-2 rounded-full transition-colors"
               >
                 <Tag className="w-3.5 h-3.5" />
-                Sell
+                {t("sell")}
               </Link>
 
               <Link href="/wishlist" className="relative p-2.5 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-colors" title="Wishlist">
@@ -195,42 +204,73 @@ export default function Navbar() {
                 <span className="absolute top-1 right-1 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[16px] h-[16px] flex items-center justify-center leading-none">5</span>
               </button>
 
-              {/* Language Picker */}
-              <div className="relative" ref={langRef}>
-                <button
-                  onClick={() => setLangOpen(!langOpen)}
-                  className="flex items-center gap-1 px-2.5 py-2 rounded-full hover:bg-gray-100 transition-colors"
-                  title="Select language"
+              {/* Language Dropdown */}
+              <div className="relative">
+                <button 
+                  onClick={() => setIsLangMenuOpen(!isLangMenuOpen)}
+                  className="relative p-2.5 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-colors flex items-center gap-1" 
+                  title="Language"
                 >
-                  <img src="/world.png" alt="language" className="w-5 h-5 opacity-60" />
-                  <span className="text-base leading-none">{currentLang.flag}</span>
-                  <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ${langOpen ? "rotate-180" : ""}`} />
+                  <Globe className="w-5 h-5" />
+                  <span className="text-xs font-bold uppercase">{language}</span>
                 </button>
-                {langOpen && (
-                  <div className="absolute right-0 top-full mt-2 w-44 bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden z-50">
-                    <div className="px-3 py-2 border-b border-gray-50">
-                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Language</p>
+
+                {isLangMenuOpen && (
+                  <>
+                    <div 
+                      className="fixed inset-0 z-40" 
+                      onClick={() => setIsLangMenuOpen(false)} 
+                    />
+                    <div className="absolute right-0 mt-2 w-40 max-h-80 overflow-y-auto bg-white border border-gray-100 rounded-xl shadow-lg z-50 py-1 scrollbar-thin scrollbar-thumb-gray-200">
+                      {[
+                        { code: "en", label: "English", flagUrl: "https://flagcdn.com/us.svg" },
+                        { code: "km", label: "Khmer", flagUrl: "https://flagcdn.com/kh.svg" },
+                        { code: "vi", label: "Tiếng Việt", flagUrl: "https://flagcdn.com/vn.svg" },
+                        { code: "es", label: "Español", flagUrl: "https://flagcdn.com/es.svg" },
+                        { code: "fr", label: "Français", flagUrl: "https://flagcdn.com/fr.svg" },
+                        { code: "de", label: "Deutsch", flagUrl: "https://flagcdn.com/de.svg" },
+                        { code: "zh", label: "中文", flagUrl: "https://flagcdn.com/cn.svg" },
+                        { code: "ja", label: "日本語", flagUrl: "https://flagcdn.com/jp.svg" },
+                        { code: "ko", label: "한국어", flagUrl: "https://flagcdn.com/kr.svg" },
+                        { code: "hi", label: "हिन्दी", flagUrl: "https://flagcdn.com/in.svg" },
+                        { code: "ar", label: "العربية", flagUrl: "https://flagcdn.com/sa.svg" },
+                        { code: "pt", label: "Português", flagUrl: "https://flagcdn.com/br.svg" },
+                        { code: "it", label: "Italiano", flagUrl: "https://flagcdn.com/it.svg" },
+                        { code: "ru", label: "Русский", flagUrl: "https://flagcdn.com/ru.svg" },
+                        { code: "th", label: "ไทย", flagUrl: "https://flagcdn.com/th.svg" },
+                      ].map((lang) => (
+                        <button
+                          key={lang.code}
+                          onClick={() => {
+                            setLanguage(lang.code as any);
+                            setIsLangMenuOpen(false);
+                          }}
+                          className={`w-full text-left px-4 py-2.5 text-sm transition-colors flex items-center gap-3 ${
+                            language === lang.code
+                              ? "bg-indigo-50 text-indigo-700 font-semibold"
+                              : "text-gray-700 hover:bg-gray-50"
+                          }`}
+                        >
+                          <img src={lang.flagUrl} alt={`${lang.code} flag`} className="w-5 h-3.5 object-cover rounded-[2px]" />
+                          <span>{lang.label}</span>
+                        </button>
+                      ))}
                     </div>
-                    {LANGUAGES.map((lang) => (
-                      <button
-                        key={lang.code}
-                        onClick={() => { setCurrentLang(lang); setLangOpen(false); }}
-                        className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${currentLang.code === lang.code ? "bg-indigo-50 text-indigo-700 font-semibold" : "text-gray-700 hover:bg-gray-50"}`}
-                      >
-                        <span className="text-xl">{lang.flag}</span>
-                        <div className="text-left">
-                          <p className="font-medium text-sm leading-tight">{lang.name}</p>
-                          <p className="text-xs text-gray-400">{lang.label}</p>
-                        </div>
-                        {currentLang.code === lang.code && <span className="ml-auto w-2 h-2 rounded-full bg-indigo-500" />}
-                      </button>
-                    ))}
-                  </div>
+                  </>
                 )}
               </div>
 
+              {/* Dark Mode */}
+              <button 
+                onClick={toggleTheme}
+                className="relative p-2.5 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-colors" 
+                title="Toggle Theme"
+              >
+                {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+              </button>
+
               {/* Profile */}
-              <Link href="/profile" className="w-9 h-9 bg-indigo-100 hover:bg-indigo-200 rounded-full flex items-center justify-center text-indigo-700 font-bold text-sm transition-colors" title="My Profile">
+              <Link href="/profile" className="w-9 h-9 ml-2 bg-indigo-100 hover:bg-indigo-200 rounded-full flex items-center justify-center text-indigo-700 font-bold text-sm transition-colors" title="My Profile">
                 A
               </Link>
             </div>
@@ -249,26 +289,11 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* Category nav — desktop */}
-        <div className="hidden md:block border-t border-gray-100 bg-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <nav className="flex items-center overflow-x-auto">
-              {NAV_LINKS.map((link) => (
-                <Link key={link.href} href={link.href} className="text-sm text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 px-4 py-2.5 whitespace-nowrap transition-colors font-medium">
-                  {link.label}
-                </Link>
-              ))}
-              <Link href="/sell" className="text-sm text-green-600 hover:text-green-700 hover:bg-green-50 px-4 py-2.5 whitespace-nowrap transition-colors font-semibold ml-auto">
-                + List an Item Free
-              </Link>
-            </nav>
-          </div>
-        </div>
       </header>
 
       {/* ── Sidebar Overlay ── */}
-      {isMenuOpen && (
-        <div className="fixed inset-0 z-[100] flex">
+      {isMenuOpen && createPortal(
+        <div className="fixed inset-0 z-[9999] flex" role="presentation">
           {/* Backdrop */}
           <div
             className="absolute inset-0 bg-black/40 backdrop-blur-sm"
@@ -276,7 +301,14 @@ export default function Navbar() {
           />
 
           {/* Sidebar panel */}
-          <aside className="relative w-72 max-w-[85vw] h-full bg-white shadow-2xl flex flex-col overflow-hidden">
+          <aside
+            id="site-menu"
+            ref={menuRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Site menu"
+            className="relative z-10 w-72 max-w-[85vw] h-full bg-white shadow-2xl flex flex-col overflow-hidden"
+          >
 
             {/* Sidebar header */}
             <div className="flex items-center justify-between px-5 py-4 bg-indigo-600">
@@ -290,8 +322,10 @@ export default function Navbar() {
                 </div>
               </div>
               <button
+                type="button"
                 onClick={() => setIsMenuOpen(false)}
                 className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/20 transition-colors"
+                aria-label="Close menu"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -332,32 +366,6 @@ export default function Navbar() {
                 </div>
               ))}
 
-              {/* Language in sidebar */}
-              <div className="px-5 py-3">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Language</p>
-                <div className="flex flex-col gap-1.5">
-                  {LANGUAGES.map((lang) => (
-                    <button
-                      key={lang.code}
-                      onClick={() => setCurrentLang(lang)}
-                      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-colors text-sm ${
-                        currentLang.code === lang.code
-                          ? "bg-indigo-50 border-indigo-200 text-indigo-700 font-semibold"
-                          : "border-gray-100 text-gray-600 hover:bg-gray-50"
-                      }`}
-                    >
-                      <span className="text-xl">{lang.flag}</span>
-                      <div className="text-left">
-                        <p className="font-medium text-sm leading-tight">{lang.name}</p>
-                        <p className="text-xs text-gray-400">{lang.label}</p>
-                      </div>
-                      {currentLang.code === lang.code && (
-                        <span className="ml-auto w-2 h-2 rounded-full bg-indigo-500" />
-                      )}
-                    </button>
-                  ))}
-                </div>
-              </div>
             </div>
 
             {/* Sidebar footer — version */}
@@ -366,7 +374,7 @@ export default function Navbar() {
             </div>
           </aside>
         </div>
-      )}
+      , document.body)}
     </>
   );
 }

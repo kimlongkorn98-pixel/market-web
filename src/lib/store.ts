@@ -25,6 +25,16 @@ interface WishlistStore {
   isWishlisted: (productId: string) => boolean;
 }
 
+export type ThemePreference = "light" | "dark";
+export type LanguagePreference = string;
+
+interface PreferencesStore {
+  theme: ThemePreference;
+  language: LanguagePreference;
+  setTheme: (theme: ThemePreference) => void;
+  setLanguage: (language: LanguagePreference) => void;
+}
+
 export const useCartStore = create<CartStore>()(
   persist(
     (set, get) => ({
@@ -83,5 +93,17 @@ export const useWishlistStore = create<WishlistStore>()(
       isWishlisted: (productId) => get().wishlist.includes(productId),
     }),
     { name: "market-wishlist" }
+  )
+);
+
+export const usePreferencesStore = create<PreferencesStore>()(
+  persist(
+    (set) => ({
+      theme: "light",
+      language: "en",
+      setTheme: (theme) => set({ theme }),
+      setLanguage: (language) => set({ language }),
+    }),
+    { name: "market-preferences" }
   )
 );

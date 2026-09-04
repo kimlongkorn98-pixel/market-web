@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 import {
   BadgeCheck,
@@ -36,6 +39,8 @@ const TABS = ["My Listings", "Sold Items", "Purchases"] as const;
 type Tab = (typeof TABS)[number];
 
 export default function ProfilePage() {
+  const [activeTab, setActiveTab] = useState<Tab>("My Listings");
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Profile Header */}
@@ -125,81 +130,116 @@ export default function ProfilePage() {
         </Link>
       </div>
 
-      {/* My Listings */}
-      <section>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-gray-900">My Listings</h2>
-          <span className="text-sm text-gray-500">
-            {myListings.length} active
-          </span>
-        </div>
-        {myListings.length === 0 ? (
+      {/* Tabs */}
+      <div className="flex border-b border-gray-200 mb-6 overflow-x-auto">
+        {TABS.map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`whitespace-nowrap py-4 px-6 font-medium text-sm border-b-2 transition-colors ${
+              activeTab === tab
+                ? "border-indigo-600 text-indigo-600"
+                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+            }`}
+          >
+            {tab}
+          </button>
+        ))}
+      </div>
+
+      {/* Tab Content */}
+      {activeTab === "My Listings" && (
+        <section>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold text-gray-900">My Listings</h2>
+            <span className="text-sm text-gray-500">
+              {myListings.length} active
+            </span>
+          </div>
+          {myListings.length === 0 ? (
+            <div className="text-center py-12 bg-white rounded-2xl border border-gray-100">
+              <Package className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+              <p className="text-gray-500">No listings yet.</p>
+              <Link
+                href="/sell"
+                className="inline-block mt-3 text-indigo-600 font-medium hover:text-indigo-700"
+              >
+                Create your first listing →
+              </Link>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-8">
+              {myListings.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      {activeTab === "Sold Items" && (
+        <section>
+          <h2 className="text-xl font-bold text-gray-900 mb-4">Sold Items</h2>
+          <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 border-b border-gray-100">
+                <tr>
+                  <th className="text-left px-4 py-3 text-gray-600 font-medium">
+                    Item
+                  </th>
+                  <th className="text-left px-4 py-3 text-gray-600 font-medium">
+                    Buyer
+                  </th>
+                  <th className="text-left px-4 py-3 text-gray-600 font-medium">
+                    Price
+                  </th>
+                  <th className="text-left px-4 py-3 text-gray-600 font-medium">
+                    Date
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {soldItems.map((item) => (
+                  <tr
+                    key={item.id}
+                    className="border-b border-gray-50 hover:bg-gray-50 transition-colors"
+                  >
+                    <td className="px-4 py-3 font-medium text-gray-900">
+                      {item.title}
+                    </td>
+                    <td className="px-4 py-3 text-gray-600">{item.buyer}</td>
+                    <td className="px-4 py-3 text-green-600 font-semibold">
+                      ${item.price}
+                    </td>
+                    <td className="px-4 py-3 text-gray-500">
+                      {new Date(item.soldAt).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
+      {activeTab === "Purchases" && (
+        <section>
           <div className="text-center py-12 bg-white rounded-2xl border border-gray-100">
-            <Package className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-            <p className="text-gray-500">No listings yet.</p>
+            <ShoppingBag className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+            <p className="text-gray-500">No recent purchases.</p>
             <Link
-              href="/sell"
+              href="/browse"
               className="inline-block mt-3 text-indigo-600 font-medium hover:text-indigo-700"
             >
-              Create your first listing →
+              Start shopping →
             </Link>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-8">
-            {myListings.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* Sold Items */}
-      <section className="mt-8">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Sold Items</h2>
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b border-gray-100">
-              <tr>
-                <th className="text-left px-4 py-3 text-gray-600 font-medium">
-                  Item
-                </th>
-                <th className="text-left px-4 py-3 text-gray-600 font-medium">
-                  Buyer
-                </th>
-                <th className="text-left px-4 py-3 text-gray-600 font-medium">
-                  Price
-                </th>
-                <th className="text-left px-4 py-3 text-gray-600 font-medium">
-                  Date
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {soldItems.map((item) => (
-                <tr
-                  key={item.id}
-                  className="border-b border-gray-50 hover:bg-gray-50 transition-colors"
-                >
-                  <td className="px-4 py-3 font-medium text-gray-900">
-                    {item.title}
-                  </td>
-                  <td className="px-4 py-3 text-gray-600">{item.buyer}</td>
-                  <td className="px-4 py-3 text-green-600 font-semibold">
-                    ${item.price}
-                  </td>
-                  <td className="px-4 py-3 text-gray-500">
-                    {new Date(item.soldAt).toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                    })}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
+        </section>
+      )}
     </div>
   );
 }
